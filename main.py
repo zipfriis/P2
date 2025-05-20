@@ -260,47 +260,37 @@ def createExhaustOverTimePlot(heatMatrix: np.ndarray,
     plt.savefig(outputFileName)
     plt.clf()
 
-def main(simulationTime: float, 
+def main(simTime: float, 
          plateProperties: dict, 
          botAirProperties: dict, 
          topAirProperties: dict, 
-         Discs: dict = {"x": 20, "y": 20}) -> np.ndarray:
+         Discretizations: dict = {"x": 20, "y": 20}) -> np.ndarray:
 
     global dt
-    
-    #PARAMETERS - simulation
-    Discretizations = {"x": Discs["x"], "y": Discs["y"]}
+
     num2dDataPoints = Discretizations["x"] * Discretizations["y"]
     num3dDataPoints = num2dDataPoints * 3
-    simTime = simulationTime #Seconds
 
-
-    #PARAMETERS - plate
-    plateStartTemp = plateProperties["startTemp"]
-
-    plateDimensions = {"x": 0.08, "y": 0.08, "z": plateProperties["thickness"]} #m
-    plateMountSize = {"x": 0.02, "y": 0.02}
-    plateProperties = plateProperties.copy()
+    #plateProperties = plateProperties.copy()
     
     # Distribute discretizations for the x-direction
     xDiscretizations = distribute_discretizations(
         Discretizations["x"],
-        plateDimensions["x"],
-        plateMountSize["x"]
+        plateProperties["x"],
+        plateProperties["MountSize_x"]
     )
-
 
     # Distribute discretizations for the y-direction
     yDiscretizations = distribute_discretizations(
         Discretizations["y"],
-        plateDimensions["y"],
-        plateMountSize["y"]
+        plateProperties["y"],
+        plateProperties["MountSize_y"]
     )
     
     plateDiffs = {
-        "dx": plateDimensions["x"] / xDiscretizations["plate"],
-        "dy": plateDimensions["y"] / yDiscretizations["plate"],
-        "dz": plateDimensions["z"]
+        "dx": plateProperties["x"] / xDiscretizations["plate"],
+        "dy": plateProperties["y"] / yDiscretizations["plate"],
+        "dz": plateProperties["thickness"]
     }
     plateDiffs["area"] = plateDiffs["dx"] * plateDiffs["dy"]
     plateDiffs["volume"] = plateDiffs["area"] * plateDiffs["dz"]
@@ -328,13 +318,13 @@ def main(simulationTime: float,
     
     timeIntervals = math.ceil(simTime / dt)
     
-    botHeatVector = np.full(num2dDataPoints,plateStartTemp)
+    botHeatVector = np.full(num2dDataPoints, plateProperties["startTemp"])
     for i in range(0,len(botHeatVector),Discretizations["x"]):
         botHeatVector[i] = botAirStartTemp
     
-    plateHeatVector = np.full(num2dDataPoints,plateStartTemp)
+    plateHeatVector = np.full(num2dDataPoints, plateProperties["startTemp"])
     
-    topHeatVector = np.full(num2dDataPoints,plateStartTemp)
+    topHeatVector = np.full(num2dDataPoints, plateProperties["startTemp"])
     for i in range(Discretizations["x"]):
         topHeatVector[i] = topAirStartTemp
     
@@ -376,7 +366,8 @@ def main(simulationTime: float,
     
     for t in range(timeIntervals-1):
         heatVector[t+1] = moveAirMatrix @ heatVector[t] + dt * (inverseM @ (kMatrix @ heatVector[t]))
-        
+        if  t % 10000 == 0:
+            print(heatVector[t+1])  
     return heatVector
 
 
@@ -391,7 +382,13 @@ if __name__ == "__main__":
         "density": 2700.0,              # kg/m³
         "specific_heat_capacity": 900.0, # J/(kg·K)
         "thickness": 0.001,              # m
-        "startTemp": 23
+        "startTemp": 23,
+        # dimensions
+        "x": 0.08,
+        "y": 0.08,
+
+        "MountSize_x": 0.02, 
+        "MountSize_y": 0.02,
     }
 
     #Material properties - cardboard
@@ -400,7 +397,13 @@ if __name__ == "__main__":
         "density": 689.0,              # kg/m³
         "specific_heat_capacity": 1336.0, # J/(kg·K)
         "thickness": 0.00024,           # m
-        "startTemp": 23
+        "startTemp": 23,
+        # dimensions
+        "x": 0.08,
+        "y": 0.08,
+
+        "MountSize_x": 0.02, 
+        "MountSize_y": 0.02,
     }
     
     # MATERIAL PROPERTIES - top atmospheric air
