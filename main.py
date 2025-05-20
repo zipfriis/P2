@@ -295,38 +295,19 @@ def main(simTime: float,
     plateDiffs["area"] = plateDiffs["dx"] * plateDiffs["dy"]
     plateDiffs["volume"] = plateDiffs["area"] * plateDiffs["dz"]
     
-    
-    #PARAMETERS - hot_air/top air channel
-    topAirStartTemp = topAirProperties["startTemp"]
-    topAirSpeed = 2.0  # m/s
-    topConvCoeff = topAirProperties["convection_coefficient"]
-    topAirHeight = 0.005  # Height of the air duct (meters)
-    topAirProperties = topAirProperties.copy()
-
-    
-    #PARAMETERS - cold_air/bottom air channel
-    botAirStartTemp = botAirProperties["startTemp"]
-    botAirSpeed = 2.0  # m/s
-    botConvCoeff = botAirProperties["convection_coefficient"]
-    botAirHeight = 0.005  # Height of the air duct (meters)
-    botAirProperties = botAirProperties.copy()
-
-
-
-    
-    dt = min(Calc_dt(botAirSpeed,topAirSpeed,plateDiffs["dx"],plateDiffs["dy"]))
+    dt = min(Calc_dt(botAirProperties["botAirSpeed"],topAirProperties["topAirSpeed"],plateDiffs["dx"],plateDiffs["dy"]))
     
     timeIntervals = math.ceil(simTime / dt)
     
     botHeatVector = np.full(num2dDataPoints, plateProperties["startTemp"])
     for i in range(0,len(botHeatVector),Discretizations["x"]):
-        botHeatVector[i] = botAirStartTemp
+        botHeatVector[i] = botAirProperties["startTemp"]
     
     plateHeatVector = np.full(num2dDataPoints, plateProperties["startTemp"])
     
     topHeatVector = np.full(num2dDataPoints, plateProperties["startTemp"])
     for i in range(Discretizations["x"]):
-        topHeatVector[i] = topAirStartTemp
+        topHeatVector[i] = topAirProperties["startTemp"]
     
     heatVector = np.zeros((timeIntervals,num3dDataPoints))
     heatVector[0] = np.concatenate((botHeatVector,
@@ -334,13 +315,11 @@ def main(simTime: float,
                                     topHeatVector))
     # heatVector[0,num2dDataPoints + num2dDataPoints // 2 + 5] = 100 #Troubleshoot conduction
     
-
     
     
-    
-    botAirMValue = botAirProperties["density"] * botAirProperties["specific_heat_capacity"] * plateDiffs["area"] * botAirHeight
+    botAirMValue = botAirProperties["density"] * botAirProperties["specific_heat_capacity"] * plateDiffs["area"] * botAirProperties["botAirHeight"]
     plateMValue = plateProperties["density"] * plateProperties["specific_heat_capacity"] * plateDiffs["volume"]
-    topAirMValue = topAirProperties["density"] * topAirProperties["specific_heat_capacity"] * plateDiffs["area"] * topAirHeight
+    topAirMValue = topAirProperties["density"] * topAirProperties["specific_heat_capacity"] * plateDiffs["area"] * topAirProperties["topAirHeight"]
     
     inverseM = constructInverseM_Matrix(num2dDataPoints,
                                        1/botAirMValue,
@@ -354,8 +333,8 @@ def main(simTime: float,
     
     
     kMatrix = constructKMatrix(xCondCoeff,yCondCoeff,
-                               botConvCoeff * plateDiffs["area"], 
-                               topConvCoeff * plateDiffs["area"],
+                               botAirProperties["convection_coefficient"] * plateDiffs["area"], 
+                               topAirProperties["convection_coefficient"] * plateDiffs["area"],
                                num2dDataPoints, Discretizations,
                                xDiscretizations, yDiscretizations)
     
@@ -412,7 +391,10 @@ if __name__ == "__main__":
         "density": 1.225,               # kg/m³ (at 15°C and 1 atm)
         "specific_heat_capacity": 1005.0, # J/(kg·K)
         "convection_coefficient": 21.92,    # h
-        "startTemp": 40
+        "startTemp": 40,
+
+        "topAirSpeed": 2.0,  # m/s
+        "topAirHeight": 0.005
     }
     
     # MATERIAL PROPERTIES - bot atmospheric air
@@ -421,7 +403,10 @@ if __name__ == "__main__":
         "density": 1.225,               # kg/m³ (at 15°C and 1 atm)
         "specific_heat_capacity": 1005.0, # J/(kg·K)
         "convection_coefficient": 20.43,    # h
-        "startTemp": 15
+        "startTemp": 15,
+
+        "botAirSpeed": 2.0,  # m/s
+        "botAirHeight": 0.005
     }
     
     # MATERIAL PROPERTIES - top atmospheric air
@@ -430,7 +415,10 @@ if __name__ == "__main__":
         "density": 1.225,               # kg/m³ (at 15°C and 1 atm)
         "specific_heat_capacity": 1005.0, # J/(kg·K)
         "convection_coefficient": 21.92,    # h
-        "startTemp": 40
+        "startTemp": 40,
+
+        "topAirSpeed": 2.0,  # m/s
+        "topAirHeight": 0.005
     }
     
     # MATERIAL PROPERTIES - bot atmospheric air
@@ -439,7 +427,10 @@ if __name__ == "__main__":
         "density": 1.225,               # kg/m³ (at 15°C and 1 atm)
         "specific_heat_capacity": 1005.0, # J/(kg·K)
         "convection_coefficient": 20.43,    # h
-        "startTemp": 15
+        "startTemp": 15,
+
+        "botAirSpeed": 2.0,  # m/s
+        "botAirHeight": 0.005
     }
     
     """ #Running the simulation
